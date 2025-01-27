@@ -8,6 +8,7 @@ import path, { resolve } from 'node:path';
 
 import { MakerDMG } from '@electron-forge/maker-dmg';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
+import { MakerZIP } from '@electron-forge/maker-zip';
 import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import type { ForgeConfig } from '@electron-forge/shared-types';
@@ -87,7 +88,7 @@ const config: ForgeConfig = {
       unpack: [
         '**/node_modules/sharp/**/*',
         '**/node_modules/@img/**/*',
-        '**/node_modules/mac-screen-capture-permissions/**/*',
+        '**/node_modules/@computer-use/mac-screen-capture-permissions/**/*',
       ],
     },
     afterCopy: [
@@ -99,6 +100,23 @@ const config: ForgeConfig = {
     prune: true,
     executableName: 'UI-TARS',
     extraResource: ['./resources/app-update.yml', './resources/report.html'],
+    ...(process.env.APPLE_ID &&
+    process.env.APPLE_PASSWORD &&
+    process.env.APPLE_TEAM_ID
+      ? {
+          osxSign: {
+            keychain: process.env.KEYCHAIN_PATH,
+            optionsForFile: () => ({
+              entitlements: 'build/entitlements.mac.plist',
+            }),
+          },
+          osxNotarize: {
+            appleId: process.env.APPLE_ID,
+            appleIdPassword: process.env.APPLE_PASSWORD,
+            teamId: process.env.APPLE_TEAM_ID,
+          },
+        }
+      : {}),
   },
   rebuildConfig: {},
   publishers: [
@@ -115,11 +133,12 @@ const config: ForgeConfig = {
     },
   ],
   makers: [
+    new MakerZIP({}, ['darwin']),
     new MakerSquirrel({
       name: 'UI-TARS',
       setupIcon: 'resources/icon.ico',
     }),
-    // @ts-expect-error - https://github.com/electron/forge/issues/3712
+    // https://github.com/electron/forge/issues/3712
     new MakerDMG({
       overwrite: true,
       background: 'static/dmg-background.png',

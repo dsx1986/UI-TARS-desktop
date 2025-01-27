@@ -6,7 +6,7 @@ import { electronApp, optimizer } from '@electron-toolkit/utils';
 import { app, globalShortcut, ipcMain } from 'electron';
 import squirrelStartup from 'electron-squirrel-startup';
 import ElectronStore from 'electron-store';
-// import { autoUpdater } from 'electron-updater';
+import { updateElectronApp, UpdateSourceType } from 'update-electron-app';
 import { mainZustandBridge } from 'zutron/main';
 
 import * as env from '@main/env';
@@ -38,6 +38,17 @@ class AppUpdater {
   constructor() {
     // autoUpdater.logger = logger;
     // autoUpdater.checkForUpdatesAndNotify();
+    if (!env.isE2eTest) {
+      updateElectronApp({
+        updateSource: {
+          type: UpdateSourceType.ElectronPublicUpdateService,
+          repo: 'bytedance/UI-TARS-desktop',
+          host: 'https://update.electronjs.org',
+        },
+        updateInterval: '10 minutes',
+        logger,
+      });
+    }
   }
 }
 
@@ -100,7 +111,9 @@ const initializeApp = async () => {
 
   logger.info('createMainWindow');
   const mainWindow = createMainWindow();
-  const settingsWindow = createSettingsWindow();
+  const settingsWindow = createSettingsWindow({
+    showInBackground: true,
+  });
 
   // Remove this if your app does not use auto updates
   // eslint-disable-next-line

@@ -226,7 +226,9 @@ export class ComputerUseAgent {
         logger.info('[vlmParams_conversations]:', vlmParams.conversations);
         logger.info('[vlmParams_images_len]:', vlmParams.images.length);
 
-        const vlmRes = await vlm.invoke(vlmParams);
+        const vlmRes = await vlm.invoke(vlmParams, {
+          abortController,
+        });
 
         if (!vlmRes?.prediction) {
           continue;
@@ -307,6 +309,14 @@ export class ComputerUseAgent {
         logger.info(`=====第 ${loopCnt} 次循环 End =======\n\n\n`);
       }
     } catch (error) {
+      if (
+        error instanceof Error &&
+        (error.name === 'AbortError' || error.message?.includes('aborted'))
+      ) {
+        logger.info('Request was aborted');
+        return;
+      }
+
       logger.error('[runLoop] error', error);
       this.emit('error', {
         ...this.toUserDataFormat(),

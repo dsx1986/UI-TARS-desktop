@@ -30,6 +30,7 @@ export const store = createStore<AppState>(
       status: StatusEnum.INIT,
       messages: [],
       settings: null,
+      errorMsg: null,
       getSetting: (key) => SettingStore.get(key),
       ensurePermissions: {},
 
@@ -81,7 +82,15 @@ export const store = createStore<AppState>(
       },
 
       RUN_AGENT: async () => {
-        set({ abortController: new AbortController(), thinking: true });
+        if (get().thinking) {
+          return;
+        }
+
+        set({
+          abortController: new AbortController(),
+          thinking: true,
+          errorMsg: null,
+        });
 
         await runAgent(set, get);
 
@@ -91,6 +100,7 @@ export const store = createStore<AppState>(
         set({ status: StatusEnum.END, thinking: false });
         showWindow();
         get().abortController?.abort();
+
         closeScreenMarker();
       },
       SET_INSTRUCTIONS: (instructions) => {
@@ -100,7 +110,12 @@ export const store = createStore<AppState>(
       },
       SET_MESSAGES: (messages: Conversation[]) => set({ messages }),
       CLEAR_HISTORY: () => {
-        set({ status: StatusEnum.END, messages: [], thinking: false });
+        set({
+          status: StatusEnum.END,
+          messages: [],
+          thinking: false,
+          errorMsg: null,
+        });
       },
     }) satisfies AppState,
 );

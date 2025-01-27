@@ -11,7 +11,7 @@ UI-TARS Desktop is a GUI Agent application based on [UI-TARS (Vision-Language Mo
 <p align="center">
         &nbsp&nbsp 📑 <a href="https://arxiv.org/abs/2501.12326">Paper</a> &nbsp&nbsp
         | 🤗 <a href="https://huggingface.co/bytedance-research/UI-TARS-7B-DPO">Hugging Face Models</a>&nbsp&nbsp
-        |
+        | &nbsp&nbsp🤖 <a href="https://www.modelscope.cn/models/bytedance-research/UI-TARS-7B-DPO">ModelScope</a>&nbsp&nbsp 
 <br>
 🖥️ Desktop Application &nbsp&nbsp
 | &nbsp&nbsp 👓 <a href="https://github.com/web-infra-dev/midscene">Midscene (use in browser)</a>
@@ -19,12 +19,16 @@ UI-TARS Desktop is a GUI Agent application based on [UI-TARS (Vision-Language Mo
 
 ### ⚠️ Important Announcement: GGUF Model Performance
 
-The **GGUF model** has undergone quantization, but unfortunately, its performance cannot be guaranteed. As a result, we have decided to **downgrade** it. 
+The **GGUF model** has undergone quantization, but unfortunately, its performance cannot be guaranteed. As a result, we have decided to **downgrade** it.
 
-💡 **Alternative Solution**:  
-You can use **[Cloud Deployment](#cloud-deployment)** or **[Local Deployment [vLLM]](#local-deployment-vllm)**(If you have enough GPU resources) instead. 
+💡 **Alternative Solution**:
+You can use **[Cloud Deployment](#cloud-deployment)** or **[Local Deployment [vLLM]](#local-deployment-vllm)**(If you have enough GPU resources) instead.
 
 We appreciate your understanding and patience as we work to ensure the best possible experience.
+
+## Updates
+
+- 🚀 01.25: We updated the **[Cloud Deployment](#cloud-deployment)** section in the 中文版: [GUI模型部署教程](https://bytedance.sg.larkoffice.com/docx/TCcudYwyIox5vyxiSDLlgIsTgWf#U94rdCxzBoJMLex38NPlHL21gNb) with new information related to the ModelScope platform. You can now use the ModelScope platform for deployment.
 
 ## Showcases
 
@@ -40,6 +44,7 @@ We appreciate your understanding and patience as we work to ensure the best poss
 - 🎯 Precise mouse and keyboard control
 - 💻 Cross-platform support (Windows/MacOS)
 - 🔄 Real-time feedback and status display
+- 🔐 Private and secure - fully local processing
 
 ## Quick Start
 
@@ -53,10 +58,6 @@ You can download the [latest release](https://github.com/bytedance/UI-TARS-deskt
 
 1. Drag **UI TARS** application into the **Applications** folder
   <img src="./images/mac_install.png" width="500px" />
-
-> **Note**: If app broken, you can use `sudo xattr -dr com.apple.quarantine /Applications/UI\ TARS.app`  in Terminal to fix it.
->
-> <img src="./images/mac_broken.png" width="400px" />
 
 2. Enable the permission of **UI TARS** in MacOS:
   - System Settings -> Privacy & Security -> **Accessibility**
@@ -133,6 +134,17 @@ pnpm install
 pnpm run dev
 ```
 
+> **Note**: On MacOS, you need to grant permissions to the app (e.g., iTerm2, Terminal) you are using to run commands.
+
+### Testing
+
+```bash
+# Unit test
+pnpm run test
+# E2E test
+pnpm run test:e2e
+```
+
 ## System Requirements
 
 - Node.js >= 20
@@ -148,11 +160,10 @@ UI-TARS Desktop is licensed under the Apache License 2.0.
 If you find our paper and code useful in your research, please consider giving a star :star: and citation :pencil:
 
 ```BibTeX
-@article{uitars2025,
-  author    = {Yujia Qin, Yining Ye, Junjie Fang, Haoming Wang, Shihao Liang, Shizuo Tian, Junda Zhang, Jiahao Li, Yunxin Li, Shijue Huang, Wanjun Zhong, Kuanye Li, Jiale Yang, Yu Miao, Woyu Lin, Longxiang Liu, Xu Jiang, Qianli Ma, Jingyu Li, Xiaojun Xiao, Kai Cai, Chuang Li, Yaowei Zheng, Chaolin Jin, Chen Li, Xiao Zhou, Minchao Wang, Haoli Chen, Zhaojian Li, Haihua Yang, Haifeng Liu, Feng Lin, Tao Peng, Xin Liu, Guang Shi},
-  title     = {UI-TARS: Pioneering Automated GUI Interaction with Native Agents},
-  journal   = {arXiv preprint arXiv:2501.12326},
-  url       = {https://github.com/bytedance/UI-TARS},
-  year      = {2025}
+@article{qin2025ui,
+  title={UI-TARS: Pioneering Automated GUI Interaction with Native Agents},
+  author={Qin, Yujia and Ye, Yining and Fang, Junjie and Wang, Haoming and Liang, Shihao and Tian, Shizuo and Zhang, Junda and Li, Jiahao and Li, Yunxin and Huang, Shijue and others},
+  journal={arXiv preprint arXiv:2501.12326},
+  year={2025}
 }
 ```

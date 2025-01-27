@@ -29,6 +29,7 @@ export type AppState = {
   instructions: string | null;
   restUserData: Omit<ComputerUseUserData, 'status' | 'conversations'> | null;
   status: ComputerUseUserData['status'];
+  errorMsg: string | null;
   messages: ComputerUseUserData['conversations'];
   settings: Partial<LocalStore> | null;
   getSetting: typeof SettingStore.get;
@@ -52,7 +53,8 @@ export type AppState = {
 
 export enum VlmProvider {
   // Ollama = 'ollama',
-  Huggingface = 'huggingface',
+  Huggingface = 'Hugging Face',
+  vLLM = 'vLLM',
 }
 
 export type LocalStore = {
@@ -62,4 +64,5 @@ export type LocalStore = {
   vlmApiKey: string;
   vlmModelName: string;
   screenshotScale: number; // 0.1 ~ 1.0
+  reportStorageBaseUrl?: string;
 };

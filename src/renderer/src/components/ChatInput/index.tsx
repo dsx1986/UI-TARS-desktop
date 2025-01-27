@@ -3,9 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { Box, Button, Flex, HStack, Spinner, VStack } from '@chakra-ui/react';
-import React, { forwardRef, useEffect, useRef } from 'react';
+import { useToast } from '@chakra-ui/react';
+import React, { forwardRef, useEffect, useMemo, useRef } from 'react';
 import { FaPaperPlane, FaStop, FaTrash } from 'react-icons/fa';
 import { LuScreenShare } from 'react-icons/lu';
+import { IoPlay } from 'react-icons/io5';
 import { useDispatch } from 'zutron';
 
 import { IMAGE_PLACEHOLDER } from '@ui-tars/shared/constants/vlm';
@@ -15,8 +17,10 @@ import { ComputerUseUserData } from '@ui-tars/shared/types/data';
 import { useRunAgent } from '@renderer/hooks/useRunAgent';
 import { useStore } from '@renderer/hooks/useStore';
 import { reportHTMLContent } from '@renderer/utils/html';
+import { uploadReport } from '@renderer/utils/share';
 
 import reportHTMLUrl from '@resources/report.html?url';
+import { isCallUserMessage } from '@renderer/utils/message';
 
 const ChatInput = forwardRef((_props, _ref) => {
   const {
@@ -24,11 +28,14 @@ const ChatInput = forwardRef((_props, _ref) => {
     instructions: savedInstructions,
     messages,
     restUserData,
+    settings,
   } = useStore();
+
   const [localInstructions, setLocalInstructions] = React.useState(
     savedInstructions ?? '',
   );
 
+  const toast = useToast();
   const { run } = useRunAgent();
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -68,40 +75,120 @@ const ChatInput = forwardRef((_props, _ref) => {
     }
   }, []);
 
+  const isCallUser = useMemo(() => isCallUserMessage(messages), [messages]);
+
+  /**
+   * `call_user` for human-in-the-loop
+   */
+  useEffect(() => {
+    if (status === StatusEnum.END && isCallUser && savedInstructions) {
+      setLocalInstructions(savedInstructions);
+    }
+  }, [isCallUser, status]);
+
   const lastHumanMessage =
     [...(messages || [])]
       .reverse()
       .find((m) => m?.from === 'human' && m?.value !== IMAGE_PLACEHOLDER)
       ?.value || '';
 
+  const [isSharing, setIsSharing] = React.useState(false);
+  const isSharePending = React.useRef(false);
+  const shareTimeoutRef = React.useRef<NodeJS.Timeout>();
+  const SHARE_TIMEOUT = 100000;
+
   const handleShare = async () => {
-    const response = await fetch(reportHTMLUrl);
-    const html = await response.text();
+    if (isSharePending.current) {
+      return;
+    }
 
-    const userData = {
-      ...restUserData,
-      status,
-      conversations: messages,
-    } as ComputerUseUserData;
+    try {
+      setIsSharing(true);
+      isSharePending.current = true;
 
-    const htmlContent = reportHTMLContent(html, [userData]);
+      shareTimeoutRef.current = setTimeout(() => {
+        setIsSharing(false);
+        isSharePending.current = false;
+        toast({
+          title: 'Share timeout',
+          description: 'Please try again later',
+          status: 'error',
+          position: 'top',
+          duration: 3000,
+          isClosable: true,
+        });
+      }, SHARE_TIMEOUT);
 
-    // create Blob object
-    const blob = new Blob([htmlContent], { type: 'text/html' });
+      const response = await fetch(reportHTMLUrl);
+      const html = await response.text();
 
-    // create download link
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `report-${Date.now()}.html`;
+      const userData = {
+        ...restUserData,
+        status,
+        conversations: messages,
+      } as ComputerUseUserData;
 
-    // trigger download
-    document.body.appendChild(a);
-    a.click();
+      const htmlContent = reportHTMLContent(html, [userData]);
 
-    // clean up
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+      if (settings?.reportStorageBaseUrl) {
+        try {
+          const { url } = await uploadReport(
+            htmlContent,
+            settings.reportStorageBaseUrl,
+          );
+          // Copy link to clipboard
+          await navigator.clipboard.writeText(url);
+          toast({
+            title: 'Report link copied to clipboard!',
+            status: 'success',
+            position: 'top',
+            duration: 2000,
+            isClosable: true,
+            variant: 'ui-tars-success',
+          });
+          return;
+        } catch (error) {
+          console.error('Share failed:', error);
+          toast({
+            title: 'Failed to upload report',
+            description:
+              error instanceof Error ? error.message : JSON.stringify(error),
+            status: 'error',
+            position: 'top',
+            duration: 3000,
+            isClosable: true,
+          });
+        }
+      }
+
+      // If shareEndpoint is not configured or the upload fails, fall back to downloading the file
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `report-${Date.now()}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Share failed:', error);
+      toast({
+        title: 'Failed to generate share content',
+        description:
+          error instanceof Error ? error.message : JSON.stringify(error),
+        status: 'error',
+        position: 'top',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      if (shareTimeoutRef.current) {
+        clearTimeout(shareTimeoutRef.current);
+      }
+      setIsSharing(false);
+      isSharePending.current = false;
+    }
   };
 
   const handleClearMessages = () => {
@@ -173,8 +260,9 @@ const ChatInput = forwardRef((_props, _ref) => {
                   variant="tars-ghost"
                   aria-label="Share"
                   onClick={handleShare}
+                  isDisabled={isSharing}
                 >
-                  <LuScreenShare />
+                  {isSharing ? <Spinner size="sm" /> : <LuScreenShare />}
                 </Button>
               )}
               <div />
@@ -209,17 +297,23 @@ const ChatInput = forwardRef((_props, _ref) => {
                 onClick={running ? () => dispatch('STOP_RUN') : startRun}
                 isDisabled={!running && localInstructions?.trim() === ''}
               >
-                {running ? <FaStop /> : <FaPaperPlane />}
+                {(() => {
+                  if (running) {
+                    return <FaStop />;
+                  }
+                  if (isCallUser) {
+                    return (
+                      <>
+                        <IoPlay />
+                        Return control to UI-TARS
+                      </>
+                    );
+                  }
+                  return <FaPaperPlane />;
+                })()}
               </Button>
             </HStack>
           </HStack>
-
-          {/* Add error display */}
-          {/* {error && (
-          <Box w="100%" color="red.700">
-            {error}
-          </Box>
-        )} */}
         </VStack>
       </Flex>
     </Box>
